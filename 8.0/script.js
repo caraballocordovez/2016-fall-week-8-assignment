@@ -35,8 +35,8 @@ var axisY = d3.axisLeft()
 
 //Line generator
 var lineGenerator = d3.line()
-    .x(function(d){return scaleX(d.year)})
-    .y(function(d){return scaleY(d.value)})
+    .x(function(d){return scaleX(d.travelDate)})
+    .y(function(d){return scaleY(d.price)})
     .curve(d3.curveCardinal);
 
 d3.queue()
@@ -50,7 +50,7 @@ d3.queue()
         //Add buttons
         d3.select('.btn-group')
             .selectAll('.btn')
-            .data( airlines.values() )
+            .data( airlines.values() , function(d){return d.id})
             .enter()
             .append('a')
             .html(function(d){return d})
@@ -89,15 +89,49 @@ function draw(rows){
     console.log(flightsByTravelDate);
 
     //Draw dots
+    var dots = plot.selectAll(".dot")
+        .data(rows)
+        .enter()
+        .append("circle")
+        .attr("class", "dot")
+        .attr("r", 5)
+        .style('fill',function(d){return scaleColor(d.airline)})
+        .attr('cx',function(d){return scaleX(d.travelDate)})
+        .attr('cy',function(d){return scaleY(d.price)})
 
+       .on('click',function(d){
+            var tooltip = d3.select('.custom-tooltip');
+            tooltip.select('.title')
+                .html(d.airline)
+            tooltip.select('.value')
+                .html(d.price);
+            var xy = d3.mouse( d3.select('.container').node() );
+            tooltip
+                .style('left',xy[0]+10+'px')
+                .style('top',xy[1]+10+'px');
+            });
 
     //Draw <path>
+
+    plot.select('.time-series')
+        .datum(rows)
+        .transition()
+        .attr('d',function(datum){
+            return lineGenerator(datum);
+        })
+        .style('fill','none')
+        .style('stroke-width','2px')
+        .style('stroke',function(datum){
+            return scaleColor(datum[0].airline);
+        });
 }
+
+var path = plot.append("path").attr("class", "time-series");
 
 function parse(d){
 
     if( !airlines.has(d.airline) ){
-        airlines.add(d.airline);
+        airlines.add(d.airline); //this populates the airlines array, that we created at line 17, with the data of d.airline. It's saying "If airlines doesn't have a name of airline, add it"
     }
 
     return {
